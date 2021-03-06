@@ -10,6 +10,7 @@ int signalPin = A0;
 int sensorVccPin = 7;
 int alarmVccPin = 5;
 int buzzReminder = 3;
+bool moistureGood = false;
 
 void setup()
 {
@@ -28,7 +29,7 @@ void loop()
   raiseAlarm(moistureLevel);
   //Serial.print("Soil Moisture = ");
   //Serial.println(moistureLevel);
-  delay(1000UL * 60UL); //Delay for 30 minutes before doing another check.
+  delay(1000UL * 60UL * 30UL); //Delay for 30 minutes before doing another check.
 }
 
 int getSoilMoistureLevel()
@@ -45,24 +46,26 @@ void raiseAlarm(int moistureLevel)
 {
   int buzzCount = 0;
 
-  if (moistureLevel < 400)
+  if (moistureLevel <= 600)
   {
     while (buzzCount < buzzReminder)
     {
-      buzzUrgent();
+      if (moistureLevel < 400)
+      {
+        buzzUrgent();
+      }
+      else
+      {
+        buzzGentle();
+      }
+
       buzzCount++;
     }
+    return;
   }
-  else if (moistureLevel <= 600)
+  if (moistureLevel >= 1000 && !moistureGood)
   {
-    while (buzzCount < buzzReminder)
-    {
-      buzzGentle();
-      buzzCount++;
-    }
-  }
-  else if (moistureLevel >= 1000)
-  {
+    moistureGood = true;
     buzzGood();
   }
 }
