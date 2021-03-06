@@ -9,7 +9,7 @@
 int signalPin = A0;
 int sensorVccPin = 7;
 int alarmVccPin = 5;
-int buzz = 3;
+int buzzReminder = 3;
 
 void setup()
 {
@@ -45,16 +45,48 @@ void raiseAlarm(int moistureLevel)
 {
   int buzzCount = 0;
 
-  if (moistureLevel <= 600)
-  { 
-    while (buzzCount < buzz)
+  if (moistureLevel < 400)
+  {
+    while (buzzCount < buzzReminder)
     {
-      tone(alarmVccPin, 55);
-      delay(1000);
-      noTone(alarmVccPin);
-      delay(1000);
+      buzzUrgent();
       buzzCount++;
     }
   }
+  else if (moistureLevel <= 600)
+  {
+    while (buzzCount < buzzReminder)
+    {
+      buzzGentle();
+      buzzCount++;
+    }
+  }
+  else if (moistureLevel >= 1000)
+  {
+    buzzGood();
+  }
+}
 
+void buzzGentle()
+{
+  tone(alarmVccPin, 60);
+  delay(1500);
+  noTone(alarmVccPin);
+  delay(1500);
+}
+
+void buzzUrgent()
+{
+  tone(alarmVccPin, 75);
+  delay(1000);
+  noTone(alarmVccPin);
+  delay(1000);
+}
+
+void buzzGood()
+{
+  tone(alarmVccPin, 85);
+  delay(1000);
+  noTone(alarmVccPin);
+  delay(500);
 }
