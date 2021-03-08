@@ -5,6 +5,7 @@
 
    A sketch that monitors the soil moisture and sends out an alert if it gets too low
 */
+
 #include "Arduino_SensorKit.h"
 
 int signalPin = A0;
@@ -12,10 +13,11 @@ int sensorVccPin = 7;
 int alarmVccPin = 5;
 int buzzReminder = 3;
 bool moistureGood = false;
+int moistureLevel = 0;
 
 void setup()
 {
-  Serial.begin(9600); //Open serial over USB
+  Serial.begin(115200); //Open serial over USB
 
   pinMode(sensorVccPin, OUTPUT); //Enable D#7 with power
   digitalWrite(sensorVccPin, LOW); //Set D#7 pin to LOW to cut off power
@@ -23,35 +25,45 @@ void setup()
   pinMode(alarmVccPin, OUTPUT); //Enable D#8 with power
   noTone(alarmVccPin); //Set the buzzer voltage low and make no noise
 
-  //Oled.begin();
-  //Oled.setFlipMode(true);
-
+  if (Oled.begin())
+  {
+    Oled.setFlipMode(true);
+    Oled.setFont(u8x8_font_chroma48medium8_r);
+  }
+  else
+  {
+    Serial.print("Fail to initialise OLED");
+  }
 }
 
 void loop()
 {
-  int moistureLevel = getSoilMoistureLevel();
-  //displayMoistureLevel(moistureLevel);
-  raiseAlarm(moistureLevel);
+  getSoilMoistureLevel();
+  displayMoistureLevel();
+  raiseAlarm();
   Serial.print("Soil Moisture = ");
   Serial.println(moistureLevel);
   delay(1000UL); //Delay for 30 minutes before doing another check.
 }
 
-void displayMoistureLevel(int moistureLevel)
+void displayMoistureLevel()
 {
-  Oled.setFont(u8x8_font_chroma48medium8_r);
-  Oled.setCursor(0, 33);
+  
+  Oled.setCursor(0, 48);
   Oled.print("Soil Moisture = ");
+  Oled.setCursor(0, 28);
   Oled.print(moistureLevel);
+  if (moistureLevel < 100)
+  {
+    Oled.print("   ");
+  }
   Oled.refreshDisplay();
-  delay(500);
+  //delay(1000);
 
 }
 
-int getSoilMoistureLevel()
+void getSoilMoistureLevel()
 {
-  int moistureLevel = 0;
   digitalWrite(sensorVccPin, HIGH); //Turn D#7 on with power
   delay(20); //wait 20 milliseconds
   moistureLevel = analogRead(signalPin); //Read the SIG value from the sensor
@@ -59,7 +71,7 @@ int getSoilMoistureLevel()
   return moistureLevel;
 }
 
-void raiseAlarm(int moistureLevel)
+void raiseAlarm()
 {
   int buzzCount = 0;
   if (moistureLevel < 50)
@@ -73,7 +85,7 @@ void raiseAlarm(int moistureLevel)
     {
       moistureGood = false;
     }
-    
+
     while (buzzCount < buzzReminder)
     {
 
