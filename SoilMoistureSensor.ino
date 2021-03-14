@@ -18,7 +18,7 @@ int moistureLevel = 0;
 //OLED Display config
 unsigned long displayActivatedOn = 0;
 bool activateDisplay = false;
-unsigned long displayStayOn = 3500;
+unsigned long displayStayOn = 5000;
 
 //Buzzer config
 unsigned long buzzerActive = 0;
@@ -62,6 +62,8 @@ void loop()
   {
     activateDisplay = true;
     displayActivatedOn = millis();
+    Oled.setPowerSave(0);
+    Serial.println("Activating display");   
   }
   
   if (firstReading || millis() >= soilMoistureReadTime + soilMoistureNextRead)
@@ -74,13 +76,11 @@ void loop()
     readSoilMoistureLevel();
     Serial.print("Soil Moisture = ");
     Serial.println(moistureLevel);
-  }
-  
+  } 
   
   if (activateDisplay)
   {
-    Serial.println("Activating display");
-    Oled.setPowerSave(0);
+  
     displayMoistureLevel();
   }
   
@@ -155,7 +155,7 @@ void raiseAlarm()
     }
     return;
   }
-  if (moistureLevel >= 850 && !moistureGood)
+  if (moistureLevel > 900 && !moistureGood)
   {
     moistureGood = true;
     if (buzzerGoodToGo)
