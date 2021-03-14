@@ -12,19 +12,26 @@
 #define sensorVccPin 7
 #define alarmVccPin 5
 
-int signalPin = A0;
-
 bool moistureGood = false;
 int moistureLevel = 0;
-unsigned long displayActive = 0;
+
+//OLED Display config
+unsigned long displayActivatedOn = 0;
 bool activateDisplay = false;
-unsigned long nonBlockingDelay = 3500;
+unsigned long displayStayOn = 3500;
+
+//Buzzer config
 unsigned long buzzerActive = 0;
 unsigned long buzzerDelay = 1500;
 unsigned long nextBuzzerActive = 1800000;
 bool buzzerGoodToGo = true;
 unsigned long nextBuzzer = 0;
 
+//Soil moisture config
+int signalPin = A0;
+unsigned long soilMoistureReadTime = 0;
+unsigned long soilMoistureNextRead = 1000UL * 30UL;// * 5UL; //30 seconds
+bool firstReading = true;
 
 void setup()
 {
@@ -51,28 +58,40 @@ void setup()
 
 void loop()
 {
-  getSoilMoistureLevel();
   if (isButtonPressed())
   {
     activateDisplay = true;
-    displayActive = millis();
+    displayActivatedOn = millis();
   }
+  
+  if (firstReading || millis() >= soilMoistureReadTime + soilMoistureNextRead)
+  {
+    if (firstReading)
+    {
+      firstReading = false;
+    }
+    soilMoistureReadTime = millis();
+    readSoilMoistureLevel();
+    Serial.print("Soil Moisture = ");
+    Serial.println(moistureLevel);
+  }
+  
+  
   if (activateDisplay)
   {
     Serial.println("Activating display");
     Oled.setPowerSave(0);
     displayMoistureLevel();
   }
+  
   raiseAlarm();
-  Serial.print("Soil Moisture = ");
-  Serial.println(moistureLevel);
-  if (activateDisplay && millis() > displayActive + nonBlockingDelay)
+
+  if (activateDisplay && millis() > displayActivatedOn + displayStayOn)
   {
     Serial.println("Deactivating display");
     Oled.setPowerSave(1);
     activateDisplay = false;
   }
-  delay(500);
 }
 
 bool isButtonPressed()
@@ -98,13 +117,12 @@ void displayMoistureLevel()
   Oled.refreshDisplay();
 }
 
-void getSoilMoistureLevel()
-{
+void readSoilMoistureLevel()
+{  
   digitalWrite(sensorVccPin, HIGH); //Turn D#7 on with power
   delay(20); //wait 20 milliseconds
   moistureLevel = analogRead(signalPin); //Read the SIG value from the sensor
   digitalWrite(sensorVccPin, LOW); //Turn D#7 off.
-  return moistureLevel;
 }
 
 void raiseAlarm()
@@ -128,10 +146,10 @@ void raiseAlarm()
     {
       Serial.println("Buzzer good to go!");
       buzzerActive = millis();
-      
+
       Serial.print("Buzz ");
       buzzUrgent();
-      
+
       Serial.println("Buzzer stop!");
       buzzerGoodToGo = false;
     }
