@@ -7,11 +7,13 @@
 */
 
 #include "Arduino_SensorKit.h"
+#include "Grove_I2C_Motor_Driver.h"
 
 #define button 4
 #define sensorVccPin 7
 #define sensor2VccPin 8
 #define alarmVccPin 5
+#define I2C_ADDRESS 0x0F
 
 bool moistureGood = false;
 
@@ -36,9 +38,14 @@ unsigned long soilMoistureReadTime = 0;
 unsigned long soilMoistureNextRead = 1000UL * 30UL;// * 5UL; //30 seconds
 bool firstReading = true;
 
+//Motor driver
+bool motorRunning = false;
+unsigned long motorRunTime = 0;
+unsigned long motorToRun = 1000 * 1; //1 seconds
+
 void setup()
 {
-  Serial.begin(115200); //Open serial over USB
+  Serial.begin(9600); //Open serial over USB
 
   pinMode(sensorVccPin, OUTPUT); //Enable D#7 with power
   digitalWrite(sensorVccPin, LOW); //Set D#7 pin to LOW to cut off power
@@ -51,25 +58,41 @@ void setup()
 
   pinMode(button, INPUT);
 
+  Wire.begin();
   if (Oled.begin())
   {
+    Serial.println("OLED initialised");
     Oled.setFlipMode(true);
     Oled.setFont(u8x8_font_chroma48medium8_r);
   }
   else
   {
-    Serial.print("Fail to initialise OLED");
+    Serial.println("Fail to initialise OLED");
   }
+  delay(2000);
+  Wire.end();
+
+/*
+  Wire.begin();
+  Serial.println();
+  Serial.println("Initialising motor driver...");
+
+  Motor.begin(I2C_ADDRESS);
+  Serial.println("Motor driver initialised.");
+  delay(2000);
+  Wire.end();
+*/
 }
 
 void loop()
 {
   if (isButtonPressed())
   {
+    Serial.println("Activating display");
     activateDisplay = true;
     displayActivatedOn = millis();
     Oled.setPowerSave(0);
-    Serial.println("Activating display");
+    
   }
 
   if (firstReading || millis() >= soilMoistureReadTime + soilMoistureNextRead)
@@ -89,7 +112,6 @@ void loop()
 
   if (activateDisplay)
   {
-
     displayMoistureLevel();
   }
 
@@ -99,8 +121,27 @@ void loop()
   {
     Serial.println("Deactivating display");
     Oled.setPowerSave(1);
+    //u8g2.setPowerSave(1);
     activateDisplay = false;
   }
+
+/*
+  if (moistureLevels[1] < 850 && !motorRunning)
+  {
+    Serial.println("Moisture too low. Pumping water");
+
+    motorRunTime = millis();
+    Motor.speed(MOTOR2, 100);
+    motorRunning = true;
+  }
+
+  if (motorRunning && millis() >= motorRunTime + motorToRun)
+  {
+    Motor.stop(MOTOR2);
+    motorRunning = false;
+    Serial.println("Motor 2 stopped.");
+  }
+  */
 }
 
 bool isButtonPressed()
@@ -119,23 +160,24 @@ void displayMoistureLevel()
   Oled.print("Soil Moist. 1: ");
   Oled.setCursor(0, 18);
   Oled.print(moistureLevels[0]);
-  
-  if (moistureLevel < 100)
+
+  if (moistureLevels[0] < 100)
   {
     Oled.print("   ");
   }
-  
+
   Oled.setCursor(0, 28);
   Oled.print("Soil Moist. 2: ");
   Oled.setCursor(0, 38);
-  Oled.print(moistureLevels[1]);  
+  Oled.print(moistureLevels[1]);
   if (moistureLevels[1] < 100)
   {
     Oled.print("   ");
   }
-  
+
   Oled.refreshDisplay();
 }
+
 
 void readSoilMoistureLevel()
 {
