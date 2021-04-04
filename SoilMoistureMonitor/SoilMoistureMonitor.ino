@@ -23,7 +23,7 @@ int moistureLevels[] = {0, 0};
 //OLED Display config
 unsigned long displayActivatedOn = 0;
 bool activateDisplay = false;
-unsigned long displayStayOn = 5000;
+unsigned long displayStayOn = 8000;
 
 //Buzzer config
 unsigned long buzzerActive = 0;
