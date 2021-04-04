@@ -9,11 +9,13 @@
 #include "Arduino_SensorKit.h"
 #include "Grove_I2C_Motor_Driver.h"
 
+
 #define button 4
 #define sensorVccPin 7
 #define sensor2VccPin 8
 #define alarmVccPin 5
 #define I2C_ADDRESS 0x0F
+#define OLED_ADDRESS 0x3C
 
 bool moistureGood = false;
 
@@ -39,9 +41,11 @@ unsigned long soilMoistureNextRead = 1000UL * 30UL;// * 5UL; //30 seconds
 bool firstReading = true;
 
 //Motor driver
-bool motorRunning = false;
-unsigned long motorRunTime = 0;
-unsigned long motorToRun = 1000 * 1; //1 seconds
+bool motorsRunning[] = {false, false};
+unsigned long motorsRunTime[] = {0, 0};
+unsigned long motorToRun = 30000; //30 seconds
+unsigned long motorRunCheckMoistureDelay = 2000; //2 seconds
+
 
 void setup()
 {
@@ -58,7 +62,6 @@ void setup()
 
   pinMode(button, INPUT);
 
-  Wire.begin();
   if (Oled.begin())
   {
     Serial.println("OLED initialised");
@@ -69,19 +72,13 @@ void setup()
   {
     Serial.println("Fail to initialise OLED");
   }
-  delay(2000);
-  Wire.end();
 
-/*
-  Wire.begin();
   Serial.println();
   Serial.println("Initialising motor driver...");
-
   Motor.begin(I2C_ADDRESS);
+  motorInitialisationTest();
   Serial.println("Motor driver initialised.");
-  delay(2000);
-  Wire.end();
-*/
+
 }
 
 void loop()
@@ -92,7 +89,6 @@ void loop()
     activateDisplay = true;
     displayActivatedOn = millis();
     Oled.setPowerSave(0);
-    
   }
 
   if (firstReading || millis() >= soilMoistureReadTime + soilMoistureNextRead)
@@ -108,6 +104,9 @@ void loop()
 
     Serial.print("Soil Moisture 2: ");
     Serial.println(moistureLevels[1]);
+
+    Serial.println("Checking if need to water plant...");
+    waterPlantIfNeeded();
   }
 
   if (activateDisplay)
@@ -121,27 +120,52 @@ void loop()
   {
     Serial.println("Deactivating display");
     Oled.setPowerSave(1);
-    //u8g2.setPowerSave(1);
     activateDisplay = false;
   }
 
-/*
-  if (moistureLevels[1] < 850 && !motorRunning)
-  {
-    Serial.println("Moisture too low. Pumping water");
+  stopPumpingWaterWhenRequired();
+}
 
-    motorRunTime = millis();
+void waterPlantIfNeeded()
+{
+  if (moistureLevels[1] >= 800)
+  {
+    Serial.println("No need to water");
+    return;
+  }
+  if (moistureLevels[1] <= 600)
+  {
+    pumpWater();
+  }
+}
+
+void pumpWater()
+{
+  if (!motorsRunning[1])
+  {
+    Serial.println("Running pump 2");
+    motorsRunTime[1] = millis();
     Motor.speed(MOTOR2, 100);
-    motorRunning = true;
+    motorsRunning[1] = true;
   }
+}
 
-  if (motorRunning && millis() >= motorRunTime + motorToRun)
+void stopPumpingWaterWhenRequired()
+{
+
+  if (motorsRunning[1] && ( moistureLevels[1] >= 800 || millis() > motorsRunTime[1] + motorToRun ))
   {
+    Serial.println("Stop water pump 2");
     Motor.stop(MOTOR2);
-    motorRunning = false;
-    Serial.println("Motor 2 stopped.");
+    motorsRunning[1] = false;
   }
-  */
+  
+  if (motorsRunning[1] && millis() >= soilMoistureReadTime + motorRunCheckMoistureDelay)
+  {
+    soilMoistureReadTime = millis();
+    readSoilMoistureLevel();
+
+  }
 }
 
 bool isButtonPressed()
@@ -181,11 +205,20 @@ void displayMoistureLevel()
 
 void readSoilMoistureLevel()
 {
+  readSoilMoistureSensor1();
+  readSoilMoistureSensor2();
+}
+
+void readSoilMoistureSensor1()
+{
   digitalWrite(sensorVccPin, HIGH); //Turn D#7 on with power
   delay(20); //wait 20 milliseconds
   moistureLevels[0] = analogRead(signalPin); //Read the SIG value from the sensor
   digitalWrite(sensorVccPin, LOW); //Turn D#7 off.
+}
 
+void readSoilMoistureSensor2()
+{
   digitalWrite(sensor2VccPin, HIGH); //Turn D#8 on with power
   delay(20); //wait 20 milliseconds
   moistureLevels[1] = analogRead(signal2Pin); //Read the SIG value from the sensor
@@ -251,4 +284,11 @@ void buzzGood()
   tone(alarmVccPin, 85);
   delay(500);
   noTone(alarmVccPin);
+}
+
+void motorInitialisationTest()
+{
+  Motor.speed(MOTOR2, 100);
+  delay(2000);
+  Motor.stop(MOTOR2);
 }
