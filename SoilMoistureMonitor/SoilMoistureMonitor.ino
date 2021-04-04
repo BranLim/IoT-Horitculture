@@ -5,6 +5,7 @@
 
    A sketch that monitors the soil moisture and sends out an alert if it gets too low
 */
+
 #include "Grove_I2C_Motor_Driver.h"
 #include "Arduino_SensorKit.h"
 
@@ -51,10 +52,21 @@ void setup()
 
   delay(2000);
 
-  Oled.setPowerSave(0);
+  Serial.println("Initialising OLED");
+  if (Oled.begin())
+  {
+    Oled.clear();
+    Oled.setFlipMode(true);
+    Oled.setFont(u8x8_font_chroma48medium8_r);
+    Serial.println("OLED initialised");
+  }
+  else
+  {
+    Serial.println("Fail to initialise OLED");
+  }
 
   Serial.println("Initialising sensors...");
-  //displayMessage("Init sensors...");
+  displayMessage("Init Sensors. ...");
   pinMode(sensorVccPin, OUTPUT); //Enable D#7 with power
   digitalWrite(sensorVccPin, LOW); //Set D#7 pin to LOW to cut off power
 
@@ -70,33 +82,21 @@ void setup()
   Serial.println();
 
   Serial.println("Initialising motor driver...");
-  //displayMessage("Init M. Drv. ...");
+  displayMessage("Init M. Drv. ...");
   Motor.begin(I2C_ADDRESS);
 
   Serial.println("Testing motor driver...");
-  //displayMessage("Test m. drv...");
+  displayMessage("Test m. drv...");
   motorInitialisationTest();
   Serial.println("Motor driver initialised.");
-  //displayMessage("M. Drv. ready.");
-  
+  displayMessage("M. Drv. ready.");
+
   delay(2000);
 
-  Wire.begin();
-  Serial.println("Initialising OLED");
+  displayMessage("Sys. Ready");
 
-  if (Oled.begin())
-  {
-    Serial.println("OLED initialised");
-    Oled.setFlipMode(true);
-    Oled.setFont(u8x8_font_chroma48medium8_r);
-    Oled.clear();
-  }
-  else
-  {
-    Serial.println("Fail to initialise OLED");
-  }
-
-  Wire.end();
+  delay(2000);
+  Oled.setPowerSave(1);
 }
 
 void loop()
