@@ -5,7 +5,6 @@
 
    A sketch that monitors the soil moisture and sends out an alert if it gets too low
 */
-
 #include "Grove_I2C_Motor_Driver.h"
 #include "Arduino_SensorKit.h"
 
@@ -50,6 +49,12 @@ void setup()
 {
   Serial.begin(9600); //Open serial over USB
 
+  delay(2000);
+
+  Oled.setPowerSave(0);
+
+  Serial.println("Initialising sensors...");
+  //displayMessage("Init sensors...");
   pinMode(sensorVccPin, OUTPUT); //Enable D#7 with power
   digitalWrite(sensorVccPin, LOW); //Set D#7 pin to LOW to cut off power
 
@@ -61,30 +66,37 @@ void setup()
 
   pinMode(button, INPUT);
 
-  Wire.begin(OLED_ADDRESS);
+  delay(2000);
+  Serial.println();
+
+  Serial.println("Initialising motor driver...");
+  //displayMessage("Init M. Drv. ...");
+  Motor.begin(I2C_ADDRESS);
+
+  Serial.println("Testing motor driver...");
+  //displayMessage("Test m. drv...");
+  motorInitialisationTest();
+  Serial.println("Motor driver initialised.");
+  //displayMessage("M. Drv. ready.");
+  
+  delay(2000);
+
+  Wire.begin();
   Serial.println("Initialising OLED");
+
   if (Oled.begin())
   {
     Serial.println("OLED initialised");
     Oled.setFlipMode(true);
     Oled.setFont(u8x8_font_chroma48medium8_r);
+    Oled.clear();
   }
   else
   {
     Serial.println("Fail to initialise OLED");
   }
-  Wire.end();
-  delay(2000);
 
-  Wire.begin(I2C_ADDRESS);
-  Serial.println();
-  Serial.println("Initialising motor driver...");
-  Motor.begin(I2C_ADDRESS);
-  Serial.println("Testing motor driver...");
-  motorInitialisationTest();
-  Serial.println("Motor driver initialised.");
   Wire.end();
-
 }
 
 void loop()
@@ -95,6 +107,7 @@ void loop()
     activateDisplay = true;
     displayActivatedOn = millis();
     Oled.setPowerSave(0);
+
   }
 
   if (firstReading || millis() >= soilMoistureReadTime + soilMoistureNextRead)
@@ -129,7 +142,11 @@ void loop()
     activateDisplay = false;
   }
 
-  stopPumpingWaterWhenRequired();
+  if (motorsRunning[0] || motorsRunning[1])
+  {
+    Serial.println("Checking if pumps need to stop...");
+    stopPumpingWaterWhenRequired();
+  }
 }
 
 void waterPlantIfNeeded()
@@ -211,6 +228,50 @@ bool isButtonPressed()
   }
   return false;
 }
+
+/*
+  void displayMessage(String message)
+  {
+  Wire.beginTransmission(OLED_ADDRESS);
+  u8x8.clear();
+  //u8x8.setCursor(0, 0);
+  u8x8.drawString(0, 0, message.c_str());
+  u8x8.refreshDisplay();
+  Wire.endTransmission();
+  }
+*/
+void displayMessage(String message)
+{
+  Oled.clear();
+  Oled.setCursor(0, 0);
+  Oled.print(message);
+  Oled.refreshDisplay();
+}
+
+
+/*
+  void displayMoistureLevel()
+  {
+  u8x8.drawString(0, 0, "Soil Moist. 1:");
+  u8x8.drawString(0, 18, moistureLevels[0]);
+
+  if (moistureLevels[0] < 100)
+  {
+    u8x8.drawString(0, 18, "   ");
+  }
+      Oled.setCursor(0, 28);
+    Oled.print("Soil Moist. 2: ");
+    Oled.setCursor(0, 38);
+    Oled.print(moistureLevels[1]);
+    if (moistureLevels[1] < 100)
+    {
+      Oled.print("   ");
+    }
+
+  u8x8.refreshDisplay();
+  }
+
+*/
 
 void displayMoistureLevel()
 {
