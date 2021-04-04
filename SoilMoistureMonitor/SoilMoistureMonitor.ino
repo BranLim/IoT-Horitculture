@@ -6,9 +6,8 @@
    A sketch that monitors the soil moisture and sends out an alert if it gets too low
 */
 
-#include "Arduino_SensorKit.h"
 #include "Grove_I2C_Motor_Driver.h"
-
+#include "Arduino_SensorKit.h"
 
 #define button 4
 #define sensorVccPin 7
@@ -43,9 +42,9 @@ bool firstReading = true;
 //Motor driver
 bool motorsRunning[] = {false, false};
 unsigned long motorsRunTime[] = {0, 0};
-unsigned long motorToRun = 30000; //30 seconds
+unsigned long motor1ToRun = 32000; //30 seconds
+unsigned long motor2ToRun = 28000; //28 seconds
 unsigned long motorRunCheckMoistureDelay = 2000; //2 seconds
-
 
 void setup()
 {
@@ -62,6 +61,8 @@ void setup()
 
   pinMode(button, INPUT);
 
+  Wire.begin(OLED_ADDRESS);
+  Serial.println("Initialising OLED");
   if (Oled.begin())
   {
     Serial.println("OLED initialised");
@@ -72,12 +73,17 @@ void setup()
   {
     Serial.println("Fail to initialise OLED");
   }
+  Wire.end();
+  delay(2000);
 
+  Wire.begin(I2C_ADDRESS);
   Serial.println();
   Serial.println("Initialising motor driver...");
   Motor.begin(I2C_ADDRESS);
+  Serial.println("Testing motor driver...");
   motorInitialisationTest();
   Serial.println("Motor driver initialised.");
+  Wire.end();
 
 }
 
@@ -128,18 +134,36 @@ void loop()
 
 void waterPlantIfNeeded()
 {
-  if (moistureLevels[1] >= 800)
+  if (moistureLevels[0] >= 800 && moistureLevels[1] >= 800)
   {
-    Serial.println("No need to water");
+    Serial.println("Nothing need to water");
     return;
+  }
+
+  if (moistureLevels[0] <= 600)
+  {
+    Serial.println("Plant 1 needs water");
+    startPump1();
   }
   if (moistureLevels[1] <= 600)
   {
-    pumpWater();
+    Serial.println("Plant 2 needs water");
+    startPump2();
   }
 }
 
-void pumpWater()
+void startPump1()
+{
+  if (!motorsRunning[0])
+  {
+    Serial.println("Running pump 1");
+    motorsRunTime[0] = millis();
+    Motor.speed(MOTOR1, 100);
+    motorsRunning[0] = true;
+  }
+}
+
+void startPump2()
 {
   if (!motorsRunning[1])
   {
@@ -150,20 +174,30 @@ void pumpWater()
   }
 }
 
+
+
 void stopPumpingWaterWhenRequired()
 {
+  if (motorsRunning[0] && ( moistureLevels[0] >= 800 || millis() > motorsRunTime[0] + motor1ToRun ))
+  {
+    Serial.println("Stop water pump 1");
+    Motor.stop(MOTOR1);
+    motorsRunning[0] = false;
+  }
 
-  if (motorsRunning[1] && ( moistureLevels[1] >= 800 || millis() > motorsRunTime[1] + motorToRun ))
+  if (motorsRunning[1] && ( moistureLevels[1] >= 800 || millis() > motorsRunTime[1] + motor2ToRun ))
   {
     Serial.println("Stop water pump 2");
     Motor.stop(MOTOR2);
     motorsRunning[1] = false;
   }
-  
-  if (motorsRunning[1] && millis() >= soilMoistureReadTime + motorRunCheckMoistureDelay)
+
+  if ((motorsRunning[0] || motorsRunning[1]) && millis() >= soilMoistureReadTime + motorRunCheckMoistureDelay)
   {
+    Serial.println("Checking soil moisture level...");
     soilMoistureReadTime = millis();
     readSoilMoistureLevel();
+    Serial.println("Soil moisture level checked.");
 
   }
 }
@@ -288,7 +322,11 @@ void buzzGood()
 
 void motorInitialisationTest()
 {
+  Motor.speed(MOTOR1, 100);
+  delay(1500);
+  Motor.stop(MOTOR1);
+
   Motor.speed(MOTOR2, 100);
-  delay(2000);
+  delay(1500);
   Motor.stop(MOTOR2);
 }
