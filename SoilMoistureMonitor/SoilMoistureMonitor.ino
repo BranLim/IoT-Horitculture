@@ -13,12 +13,13 @@
 #define sensorVccPin 7
 #define sensor2VccPin 8
 #define alarmVccPin 5
-#define I2C_ADDRESS 0x0F
+#define MOTOR_DRIVER_ADDRESS 0x0F
 #define OLED_ADDRESS 0x3C
+#define MOIST_ENOUGH 800
+#define NOT_MOIST_ENOUGH 600
 
 bool moistureGood = false;
-
-int moistureLevels[] = {0, 0};
+uint16_t moistureLevels[] = {0, 0};
 
 //OLED Display config
 unsigned long displayActivatedOn = 0;
@@ -33,18 +34,18 @@ bool buzzerGoodToGo = true;
 unsigned long nextBuzzer = 0;
 
 //Soil moisture config
-int signalPin = A0;
-int signal2Pin = A1;
+uint8_t signalPin = A0;
+uint8_t signal2Pin = A1;
 unsigned long soilMoistureReadTime = 0;
-unsigned long soilMoistureNextRead = 1000UL * 30UL;// * 5UL; //30 seconds
+unsigned long soilMoistureNextRead = 1000UL * 30UL; //30 seconds
 bool firstReading = true;
 
 //Motor driver
 bool motorsRunning[] = {false, false};
 unsigned long motorsRunTime[] = {0, 0};
-unsigned long motor1ToRun = 32000; //30 seconds
-unsigned long motor2ToRun = 28000; //28 seconds
-unsigned long motorRunCheckMoistureDelay = 2000; //2 seconds
+unsigned long motor1ToRun = 34000; //34 seconds
+unsigned long motor2ToRun = 30000; //30 seconds
+unsigned long motorRunCheckMoistureDelay = 4000; //4 seconds
 
 void setup()
 {
@@ -66,7 +67,7 @@ void setup()
   }
 
   Serial.println("Initialising sensors...");
-  displayMessage("Init Sensors. ...");
+  displayMessage("Init. Sensors...");
   pinMode(sensorVccPin, OUTPUT); //Enable D#7 with power
   digitalWrite(sensorVccPin, LOW); //Set D#7 pin to LOW to cut off power
 
@@ -76,14 +77,14 @@ void setup()
   pinMode(alarmVccPin, OUTPUT); //Enable D#5 with power
   noTone(alarmVccPin); //Set the buzzer voltage low and make no noise
 
-  pinMode(button, INPUT);
+  pinMode(button, INPUT); //Set D#4 to be button input
 
   delay(2000);
   Serial.println();
 
   Serial.println("Initialising motor driver...");
   displayMessage("Init M. Drv. ...");
-  Motor.begin(I2C_ADDRESS);
+  Motor.begin(MOTOR_DRIVER_ADDRESS);
 
   Serial.println("Testing motor driver...");
   displayMessage("Test m. drv...");
@@ -96,12 +97,14 @@ void setup()
   displayMessage("Sys. Ready");
 
   delay(2000);
+  Oled.clear();
   Oled.setPowerSave(1);
+  delay(2000);
 }
 
 void loop()
 {
-  if (isButtonPressed())
+  if (isButtonPressed() && !activateDisplay)
   {
     Serial.println("Activating display");
     activateDisplay = true;
@@ -145,28 +148,34 @@ void loop()
   if (motorsRunning[0] || motorsRunning[1])
   {
     Serial.println("Checking if pumps need to stop...");
+    Oled.setPowerSave(0);
     stopPumpingWaterWhenRequired();
+    Oled.setPowerSave(1);
   }
 }
 
 void waterPlantIfNeeded()
 {
-  if (moistureLevels[0] >= 800 && moistureLevels[1] >= 800)
+  if (moistureLevels[0] >= MOIST_ENOUGH && moistureLevels[1] >= MOIST_ENOUGH)
   {
     Serial.println("Nothing need to water");
     return;
   }
-
-  if (moistureLevels[0] <= 600)
+  
+  Oled.setPowerSave(0);
+  if (moistureLevels[0] <= NOT_MOIST_ENOUGH)
   {
     Serial.println("Plant 1 needs water");
+    displayMessage("Pl. 1 thirsty");
     startPump1();
   }
-  if (moistureLevels[1] <= 600)
+  if (moistureLevels[1] <= NOT_MOIST_ENOUGH)
   {
     Serial.println("Plant 2 needs water");
+    displayMessage("Pl. 2 thirsty");
     startPump2();
   }
+  Oled.setPowerSave(1);
 }
 
 void startPump1()
@@ -174,6 +183,7 @@ void startPump1()
   if (!motorsRunning[0])
   {
     Serial.println("Running pump 1");
+    displayMessage("Run Pump 1");
     motorsRunTime[0] = millis();
     Motor.speed(MOTOR1, 100);
     motorsRunning[0] = true;
@@ -185,6 +195,7 @@ void startPump2()
   if (!motorsRunning[1])
   {
     Serial.println("Running pump 2");
+    displayMessage("Run Pump 2");
     motorsRunTime[1] = millis();
     Motor.speed(MOTOR2, 100);
     motorsRunning[1] = true;
@@ -195,16 +206,18 @@ void startPump2()
 
 void stopPumpingWaterWhenRequired()
 {
-  if (motorsRunning[0] && ( moistureLevels[0] >= 800 || millis() > motorsRunTime[0] + motor1ToRun ))
+  if (motorsRunning[0] && ( moistureLevels[0] >= MOIST_ENOUGH || millis() > motorsRunTime[0] + motor1ToRun ))
   {
     Serial.println("Stop water pump 1");
+    displayMessage("Stop Pump 1");
     Motor.stop(MOTOR1);
     motorsRunning[0] = false;
   }
 
-  if (motorsRunning[1] && ( moistureLevels[1] >= 800 || millis() > motorsRunTime[1] + motor2ToRun ))
+  if (motorsRunning[1] && ( moistureLevels[1] >= MOIST_ENOUGH || millis() > motorsRunTime[1] + motor2ToRun ))
   {
     Serial.println("Stop water pump 2");
+    displayMessage("Stop Pump 2");
     Motor.stop(MOTOR2);
     motorsRunning[1] = false;
   }
@@ -331,7 +344,7 @@ void raiseAlarm()
     Serial.println("Buzzer good to go again!");
     buzzerGoodToGo = true;
   }
-  if (moistureLevels[0] <= 600 || moistureLevels[1] <= 600)
+  if (moistureLevels[0] <= NOT_MOIST_ENOUGH || moistureLevels[1] <= NOT_MOIST_ENOUGH)
   {
     if (moistureGood)
     {
