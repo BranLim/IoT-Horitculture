@@ -153,7 +153,6 @@ void loop()
 
 void waterPlantIfNeeded()
 {
-  if (moistureLevels[0] >= 800 && moistureLevels[1] >= 800)
   if (moistureLevels[0] >= MOIST_ENOUGH && moistureLevels[1] >= MOIST_ENOUGH)
   {
     Serial.println("Nothing need to water");
@@ -198,14 +197,14 @@ void startPump2()
 
 void stopPumpingWaterWhenRequired()
 {
-  if (motorsRunning[0] && ( moistureLevels[0] >= 800 || millis() > motorsRunTime[0] + motor1ToRun ))
+  if (motorsRunning[0] && ( moistureLevels[0] >= MOIST_ENOUGH || millis() > motorsRunTime[0] + motor1ToRun ))
   {
     Serial.println("Stop water pump 1");
     Motor.stop(MOTOR1);
     motorsRunning[0] = false;
   }
 
-  if (motorsRunning[1] && ( moistureLevels[1] >= 800 || millis() > motorsRunTime[1] + motor2ToRun ))
+  if (motorsRunning[1] && ( moistureLevels[1] >= MOIST_ENOUGH || millis() > motorsRunTime[1] + motor2ToRun ))
   {
     Serial.println("Stop water pump 2");
     Motor.stop(MOTOR2);
@@ -334,7 +333,7 @@ void raiseAlarm()
     Serial.println("Buzzer good to go again!");
     buzzerGoodToGo = true;
   }
-  if (moistureLevels[0] <= 600 || moistureLevels[1] <= 600)
+  if (moistureLevels[0] <= NOT_MOIST_ENOUGH || moistureLevels[1] <= NOT_MOIST_ENOUGH)
   {
     if (moistureGood)
     {
