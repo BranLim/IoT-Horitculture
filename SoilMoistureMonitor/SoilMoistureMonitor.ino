@@ -21,7 +21,6 @@
 bool moistureGood = false;
 uint16_t moistureLevels[] = {0, 0};
 
-
 //OLED Display config
 unsigned long displayActivatedOn = 0;
 bool activateDisplay = false;
@@ -68,7 +67,7 @@ void setup()
   }
 
   Serial.println("Initialising sensors...");
-  displayMessage("Init Sensors. ...");
+  displayMessage("Init. Sensors...");
   pinMode(sensorVccPin, OUTPUT); //Enable D#7 with power
   digitalWrite(sensorVccPin, LOW); //Set D#7 pin to LOW to cut off power
 
@@ -78,7 +77,7 @@ void setup()
   pinMode(alarmVccPin, OUTPUT); //Enable D#5 with power
   noTone(alarmVccPin); //Set the buzzer voltage low and make no noise
 
-  pinMode(button, INPUT);
+  pinMode(button, INPUT); //Set D#4 to be button input
 
   delay(2000);
   Serial.println();
@@ -98,12 +97,14 @@ void setup()
   displayMessage("Sys. Ready");
 
   delay(2000);
+  Oled.clear();
   Oled.setPowerSave(1);
+  delay(2000);
 }
 
 void loop()
 {
-  if (isButtonPressed())
+  if (isButtonPressed() && !activateDisplay)
   {
     Serial.println("Activating display");
     activateDisplay = true;
@@ -153,7 +154,6 @@ void loop()
 
 void waterPlantIfNeeded()
 {
-  if (moistureLevels[0] >= 800 && moistureLevels[1] >= 800)
   if (moistureLevels[0] >= MOIST_ENOUGH && moistureLevels[1] >= MOIST_ENOUGH)
   {
     Serial.println("Nothing need to water");
