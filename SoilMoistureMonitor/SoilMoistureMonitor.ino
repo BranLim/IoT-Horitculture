@@ -13,12 +13,14 @@
 #define sensorVccPin 7
 #define sensor2VccPin 8
 #define alarmVccPin 5
-#define I2C_ADDRESS 0x0F
+#define MOTOR_DRIVER_ADDRESS 0x0F
 #define OLED_ADDRESS 0x3C
+#define MOIST_ENOUGH 800
+#define NOT_MOIST_ENOUGH 600
 
 bool moistureGood = false;
+uint16_t moistureLevels[] = {0, 0};
 
-int moistureLevels[] = {0, 0};
 
 //OLED Display config
 unsigned long displayActivatedOn = 0;
@@ -33,8 +35,8 @@ bool buzzerGoodToGo = true;
 unsigned long nextBuzzer = 0;
 
 //Soil moisture config
-int signalPin = A0;
-int signal2Pin = A1;
+uint8_t signalPin = A0;
+uint8_t signal2Pin = A1;
 unsigned long soilMoistureReadTime = 0;
 unsigned long soilMoistureNextRead = 1000UL * 30UL;// * 5UL; //30 seconds
 bool firstReading = true;
@@ -83,7 +85,7 @@ void setup()
 
   Serial.println("Initialising motor driver...");
   displayMessage("Init M. Drv. ...");
-  Motor.begin(I2C_ADDRESS);
+  Motor.begin(MOTOR_DRIVER_ADDRESS);
 
   Serial.println("Testing motor driver...");
   displayMessage("Test m. drv...");
@@ -152,17 +154,18 @@ void loop()
 void waterPlantIfNeeded()
 {
   if (moistureLevels[0] >= 800 && moistureLevels[1] >= 800)
+  if (moistureLevels[0] >= MOIST_ENOUGH && moistureLevels[1] >= MOIST_ENOUGH)
   {
     Serial.println("Nothing need to water");
     return;
   }
 
-  if (moistureLevels[0] <= 600)
+  if (moistureLevels[0] <= NOT_MOIST_ENOUGH)
   {
     Serial.println("Plant 1 needs water");
     startPump1();
   }
-  if (moistureLevels[1] <= 600)
+  if (moistureLevels[1] <= NOT_MOIST_ENOUGH)
   {
     Serial.println("Plant 2 needs water");
     startPump2();
