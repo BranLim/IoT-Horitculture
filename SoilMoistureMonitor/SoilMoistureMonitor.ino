@@ -38,7 +38,7 @@ unsigned long nextBuzzer = 0;
 uint8_t signalPin = A0;
 uint8_t signal2Pin = A1;
 unsigned long soilMoistureReadTime = 0;
-unsigned long soilMoistureNextRead = 1000UL * 30UL;// * 5UL; //30 seconds
+unsigned long soilMoistureNextRead = 1000UL * 30UL; //30 seconds
 bool firstReading = true;
 
 //Motor driver
