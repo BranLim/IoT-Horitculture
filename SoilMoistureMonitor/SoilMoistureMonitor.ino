@@ -161,7 +161,7 @@ void waterPlantIfNeeded()
     Serial.println("Nothing need to water");
     return;
   }
-  
+
   Oled.setPowerSave(0);
   if (moistureLevels[0] <= NOT_MOIST_ENOUGH)
   {
@@ -202,8 +202,6 @@ void startPump2()
   }
 }
 
-
-
 void stopPumpingWaterWhenRequired()
 {
   if (motorsRunning[0] && ( moistureLevels[0] >= MOIST_ENOUGH || millis() > motorsRunTime[0] + motor1ToRun ))
@@ -242,17 +240,6 @@ bool isButtonPressed()
   return false;
 }
 
-/*
-  void displayMessage(String message)
-  {
-  Wire.beginTransmission(OLED_ADDRESS);
-  u8x8.clear();
-  //u8x8.setCursor(0, 0);
-  u8x8.drawString(0, 0, message.c_str());
-  u8x8.refreshDisplay();
-  Wire.endTransmission();
-  }
-*/
 void displayMessage(String message)
 {
   Oled.clear();
@@ -260,31 +247,6 @@ void displayMessage(String message)
   Oled.print(message);
   Oled.refreshDisplay();
 }
-
-
-/*
-  void displayMoistureLevel()
-  {
-  u8x8.drawString(0, 0, "Soil Moist. 1:");
-  u8x8.drawString(0, 18, moistureLevels[0]);
-
-  if (moistureLevels[0] < 100)
-  {
-    u8x8.drawString(0, 18, "   ");
-  }
-      Oled.setCursor(0, 28);
-    Oled.print("Soil Moist. 2: ");
-    Oled.setCursor(0, 38);
-    Oled.print(moistureLevels[1]);
-    if (moistureLevels[1] < 100)
-    {
-      Oled.print("   ");
-    }
-
-  u8x8.refreshDisplay();
-  }
-
-*/
 
 void displayMoistureLevel()
 {
@@ -373,7 +335,6 @@ void raiseAlarm()
     }
   }
 }
-
 
 void buzzUrgent()
 {
