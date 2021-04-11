@@ -38,15 +38,15 @@ unsigned long nextBuzzer = 0;
 uint8_t signalPin = A0;
 uint8_t signal2Pin = A1;
 unsigned long soilMoistureReadTime = 0;
-unsigned long soilMoistureNextRead = 1000UL * 30UL;// * 5UL; //30 seconds
+unsigned long soilMoistureNextRead = 1000UL * 30UL; //30 seconds
 bool firstReading = true;
 
 //Motor driver
 bool motorsRunning[] = {false, false};
 unsigned long motorsRunTime[] = {0, 0};
-unsigned long motor1ToRun = 32000; //30 seconds
-unsigned long motor2ToRun = 28000; //28 seconds
-unsigned long motorRunCheckMoistureDelay = 2000; //2 seconds
+unsigned long motor1ToRun = 34000; //34 seconds
+unsigned long motor2ToRun = 30000; //30 seconds
+unsigned long motorRunCheckMoistureDelay = 4000; //4 seconds
 
 void setup()
 {
