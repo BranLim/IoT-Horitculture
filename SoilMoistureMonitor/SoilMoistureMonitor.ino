@@ -148,7 +148,9 @@ void loop()
   if (motorsRunning[0] || motorsRunning[1])
   {
     Serial.println("Checking if pumps need to stop...");
+    Oled.setPowerSave(0);
     stopPumpingWaterWhenRequired();
+    Oled.setPowerSave(1);
   }
 }
 
@@ -159,17 +161,21 @@ void waterPlantIfNeeded()
     Serial.println("Nothing need to water");
     return;
   }
-
+  
+  Oled.setPowerSave(0);
   if (moistureLevels[0] <= NOT_MOIST_ENOUGH)
   {
     Serial.println("Plant 1 needs water");
+    displayMessage("Pl. 1 thirsty");
     startPump1();
   }
   if (moistureLevels[1] <= NOT_MOIST_ENOUGH)
   {
     Serial.println("Plant 2 needs water");
+    displayMessage("Pl. 2 thirsty");
     startPump2();
   }
+  Oled.setPowerSave(1);
 }
 
 void startPump1()
@@ -177,6 +183,7 @@ void startPump1()
   if (!motorsRunning[0])
   {
     Serial.println("Running pump 1");
+    displayMessage("Run Pump 1");
     motorsRunTime[0] = millis();
     Motor.speed(MOTOR1, 100);
     motorsRunning[0] = true;
@@ -188,6 +195,7 @@ void startPump2()
   if (!motorsRunning[1])
   {
     Serial.println("Running pump 2");
+    displayMessage("Run Pump 2");
     motorsRunTime[1] = millis();
     Motor.speed(MOTOR2, 100);
     motorsRunning[1] = true;
@@ -201,6 +209,7 @@ void stopPumpingWaterWhenRequired()
   if (motorsRunning[0] && ( moistureLevels[0] >= MOIST_ENOUGH || millis() > motorsRunTime[0] + motor1ToRun ))
   {
     Serial.println("Stop water pump 1");
+    displayMessage("Stop Pump 1");
     Motor.stop(MOTOR1);
     motorsRunning[0] = false;
   }
@@ -208,6 +217,7 @@ void stopPumpingWaterWhenRequired()
   if (motorsRunning[1] && ( moistureLevels[1] >= MOIST_ENOUGH || millis() > motorsRunTime[1] + motor2ToRun ))
   {
     Serial.println("Stop water pump 2");
+    displayMessage("Stop Pump 2");
     Motor.stop(MOTOR2);
     motorsRunning[1] = false;
   }
