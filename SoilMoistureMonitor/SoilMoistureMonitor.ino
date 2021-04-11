@@ -17,19 +17,22 @@
 #define OLED_ADDRESS 0x3C
 #define MOIST_ENOUGH 800
 #define NOT_MOIST_ENOUGH 600
+#define INIT_DELAY 2000
 
 bool moistureGood = false;
+uint8_t moistureHistIndex[2] = {0, 0};
+uint16_t moistureHist[2][5] {{0, 0, 0, 0, 0}, {0, 0, 0, 0, 0}};
 uint16_t moistureLevels[] = {0, 0};
 
 //OLED Display config
 unsigned long displayActivatedOn = 0;
 bool activateDisplay = false;
-unsigned long displayStayOn = 8000;
+uint16_t displayStayOn = 8000;
 
 //Buzzer config
 unsigned long buzzerActive = 0;
-unsigned long buzzerDelay = 1500;
-unsigned long nextBuzzerActive = 1800000;
+//unsigned long buzzerDelay = 1500;
+uint32_t nextBuzzerActive = 1800000;
 bool buzzerGoodToGo = true;
 unsigned long nextBuzzer = 0;
 
@@ -37,21 +40,21 @@ unsigned long nextBuzzer = 0;
 uint8_t signalPin = A0;
 uint8_t signal2Pin = A1;
 unsigned long soilMoistureReadTime = 0;
-unsigned long soilMoistureNextRead = 1000UL * 30UL; //30 seconds
+uint16_t soilMoistureNextRead = 30000; //30 seconds
 bool firstReading = true;
 
 //Motor driver
 bool motorsRunning[] = {false, false};
 unsigned long motorsRunTime[] = {0, 0};
-unsigned long motor1ToRun = 34000; //34 seconds
-unsigned long motor2ToRun = 30000; //30 seconds
-unsigned long motorRunCheckMoistureDelay = 4000; //4 seconds
+uint16_t motor1ToRun = 34000; //34 seconds
+uint16_t motor2ToRun = 30000; //30 seconds
+uint16_t motorRunCheckMoistureDelay = 4000; //4 seconds
 
 void setup()
 {
   Serial.begin(9600); //Open serial over USB
 
-  delay(2000);
+  delay(INIT_DELAY);
 
   Serial.println("Initialising OLED");
   if (Oled.begin())
@@ -79,7 +82,7 @@ void setup()
 
   pinMode(button, INPUT); //Set D#4 to be button input
 
-  delay(2000);
+  delay(INIT_DELAY);
   Serial.println();
 
   Serial.println("Initialising motor driver...");
@@ -88,18 +91,18 @@ void setup()
 
   Serial.println("Testing motor driver...");
   displayMessage("Test m. drv...");
-  motorInitialisationTest();
+  //motorInitialisationTest();
   Serial.println("Motor driver initialised.");
   displayMessage("M. Drv. ready.");
 
-  delay(2000);
+  delay(INIT_DELAY);
 
   displayMessage("Sys. Ready");
 
-  delay(2000);
+  delay(INIT_DELAY);
   Oled.clear();
   Oled.setPowerSave(1);
-  delay(2000);
+  delay(INIT_DELAY);
 }
 
 void loop()
@@ -283,16 +286,32 @@ void readSoilMoistureSensor1()
 {
   digitalWrite(sensorVccPin, HIGH); //Turn D#7 on with power
   delay(20); //wait 20 milliseconds
-  moistureLevels[0] = analogRead(signalPin); //Read the SIG value from the sensor
+  moistureHist[0][moistureHistIndex[0]] = (uint16_t)analogRead(signalPin); //Read the SIG value from the sensor
   digitalWrite(sensorVccPin, LOW); //Turn D#7 off.
+
+  uint16_t sum = 0;
+  for (uint8_t i = 0 ; i <= moistureHistIndex[0]; i++)
+  {
+    sum += moistureHist[0][i];
+  }
+  moistureLevels[0] = sum / (moistureHistIndex[0] + 1); //Reduce the noise of the sensor reading
+  moistureHistIndex[0] = (uint16_t)(moistureHistIndex[0] + 1) % 5; //Ensure the number stay within 5
 }
 
 void readSoilMoistureSensor2()
 {
   digitalWrite(sensor2VccPin, HIGH); //Turn D#8 on with power
   delay(20); //wait 20 milliseconds
-  moistureLevels[1] = analogRead(signal2Pin); //Read the SIG value from the sensor
+  moistureHist[1][moistureHistIndex[1]] = (uint16_t)analogRead(signal2Pin); //Read the SIG value from the sensor
   digitalWrite(sensor2VccPin, LOW); //Turn D#8 off.
+
+  uint16_t sum = 0;
+  for (uint8_t i = 0 ; i <= moistureHistIndex[1]; i++)
+  {
+    sum += moistureHist[1][i];
+  }
+  moistureLevels[1] = sum / (moistureHistIndex[1] + 1); //Reduce the noise of the sensor reading
+  moistureHistIndex[1] = (uint16_t)(moistureHistIndex[1] + 1) % 5; //Ensure the number stay within 5
 }
 
 void raiseAlarm()
