@@ -15,8 +15,9 @@
 #define alarmVccPin 5
 #define MOTOR_DRIVER_ADDRESS 0x0F
 #define OLED_ADDRESS 0x3C
-#define MOIST_ENOUGH 800
-#define NOT_MOIST_ENOUGH 600
+#define MOIST_ENOUGH 820
+#define DECENT_MOISTURE 740
+#define NOT_MOIST_ENOUGH 650
 #define INIT_DELAY 2000
 
 bool moistureGood = false;
@@ -46,8 +47,8 @@ bool firstReading = true;
 //Motor driver
 bool motorsRunning[] = {false, false};
 unsigned long motorsRunTime[] = {0, 0};
-uint16_t motor1ToRun = 34000; //34 seconds
-uint16_t motor2ToRun = 30000; //30 seconds
+uint16_t motor1ToRun = 36000; //36 seconds
+uint16_t motor2ToRun = 32000; //32 seconds
 uint16_t motorRunCheckMoistureDelay = 4000; //4 seconds
 
 void setup()
@@ -91,7 +92,7 @@ void setup()
 
   Serial.println("Testing motor driver...");
   displayMessage("Test m. drv...");
-  //motorInitialisationTest();
+  motorInitialisationTest();
   Serial.println("Motor driver initialised.");
   displayMessage("M. Drv. ready.");
 
@@ -166,13 +167,13 @@ void waterPlantIfNeeded()
   }
 
   Oled.setPowerSave(0);
-  if (moistureLevels[0] <= NOT_MOIST_ENOUGH)
+  if (moistureLevels[0] <= DECENT_MOISTURE)
   {
     Serial.println("Plant 1 needs water");
     displayMessage("Pl. 1 thirsty");
     startPump1();
   }
-  if (moistureLevels[1] <= NOT_MOIST_ENOUGH)
+  if (moistureLevels[1] <= DECENT_MOISTURE)
   {
     Serial.println("Plant 2 needs water");
     displayMessage("Pl. 2 thirsty");
