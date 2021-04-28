@@ -117,7 +117,7 @@ void loop()
 
   }
 
-  if (firstReading || millis() >= soilMoistureReadTime + soilMoistureNextRead)
+  if (firstReading || millis() - soilMoistureReadTime >= soilMoistureNextRead)
   {
     if (firstReading)
     {
@@ -142,7 +142,7 @@ void loop()
 
   raiseAlarm();
 
-  if (activateDisplay && millis() > displayActivatedOn + displayStayOn)
+  if (activateDisplay && millis() - displayActivatedOn >= displayStayOn)
   {
     Serial.println("Deactivating display");
     Oled.setPowerSave(1);
@@ -208,7 +208,7 @@ void startPump2()
 
 void stopPumpingWaterWhenRequired()
 {
-  if (motorsRunning[0] && ( moistureLevels[0] >= MOIST_ENOUGH || millis() > motorsRunTime[0] + motor1ToRun ))
+  if (motorsRunning[0] && ( moistureLevels[0] >= MOIST_ENOUGH || millis() - motorsRunTime[0] > motor1ToRun ))
   {
     Serial.println("Stop water pump 1");
     displayMessage("Stop Pump 1");
@@ -216,7 +216,7 @@ void stopPumpingWaterWhenRequired()
     motorsRunning[0] = false;
   }
 
-  if (motorsRunning[1] && ( moistureLevels[1] >= MOIST_ENOUGH || millis() > motorsRunTime[1] + motor2ToRun ))
+  if (motorsRunning[1] && ( moistureLevels[1] >= MOIST_ENOUGH || millis() - motorsRunTime[1] > motor2ToRun ))
   {
     Serial.println("Stop water pump 2");
     displayMessage("Stop Pump 2");
@@ -224,7 +224,7 @@ void stopPumpingWaterWhenRequired()
     motorsRunning[1] = false;
   }
 
-  if ((motorsRunning[0] || motorsRunning[1]) && millis() >= soilMoistureReadTime + motorRunCheckMoistureDelay)
+  if ((motorsRunning[0] || motorsRunning[1]) && millis() - soilMoistureReadTime >= motorRunCheckMoistureDelay)
   {
     Serial.println("Checking soil moisture level...");
     soilMoistureReadTime = millis();
@@ -321,7 +321,7 @@ void raiseAlarm()
   {
     return;
   }
-  if (!buzzerGoodToGo && millis() >= buzzerActive + nextBuzzerActive)
+  if (!buzzerGoodToGo && millis() - buzzerActive >= nextBuzzerActive)
   {
     Serial.println("Buzzer good to go again!");
     buzzerGoodToGo = true;
